@@ -1,17 +1,15 @@
 {
-  "sourceName": "AnimeBlkom",
-  "iconUrl": "https://raw.githubusercontent.com/mxs3/animeblkom/main/Icon.png",
+  "sourceName": "Animeiat",
   "author": {
-    "name": "MxS3",
-    "icon": "https://avatars.githubusercontent.com/u/162128369?v=4"
+    "name": "MxS3"
   },
-  "version": "1.0.0",
+  "version": "1.05",
   "language": "Arabic (SUB)",
-  "streamType": "HLS",
-  "quality": "1080p - 720p - 480p - 360p",
-  "baseUrl": "https://animeblkom.com/",
-  "searchBaseUrl": "https://animeblkom.com/search?query=%s",
-  "scriptUrl": "https://raw.githubusercontent.com/mxs3/animeblkom/main/animeblkom.js",
+  "streamType": "MP4",
+  "quality": "1080p - 720p - 360p - 480p",
+  "baseUrl": "https://www.animeiat.xyz/",
+  "searchBaseUrl": "https://www.animeiat.xyz/search?q=%s",
+  "scriptUrl": "https://raw.githubusercontent.com/scigward/scigward-sources/refs/heads/main/animeiat/animeiat.js",
   "asyncJS": true,
   "type": "anime"
 }
