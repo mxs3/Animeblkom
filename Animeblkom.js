@@ -9,60 +9,33 @@ async function searchResults(query) {
     });
 
     if (!res.ok) {
-      return JSON.stringify([{
-        title: 'Error',
-        href: '',
-        image: '',
-        error: `HTTP error: ${res.status} - ${res.statusText}`
-      }]);
+      return JSON.stringify([{ title: 'Error', href: '', image: '', error: `HTTP error: ${res.status}` }]);
     }
 
     const html = await res.text();
     if (!html || html.trim() === '') {
-      return JSON.stringify([{
-        title: 'No results found',
-        href: '',
-        image: '',
-        error: 'Empty response from API'
-      }]);
+      return JSON.stringify([{ title: 'No results found', href: '', image: '', error: 'Empty response' }]);
     }
 
     const results = [];
-    const cards = html.match(/<a[^>]+class="anime-card[^"]*"[^>]*>[\s\S]*?<img[^>]*>[\s\S]*?<\/a>/g) || [];
+    const cards = html.match(/<a[^>]+class="anime-card[^"]*"[^>]*>[\s\S]*?<img[^>]*>[\s\S]*?</a>/g) || [];
 
     for (const card of cards) {
-      const titleMatch = card.match(/<h3[^>]*>(.*?)<\/h3>/);
+      const titleMatch = card.match(/<h3[^>]*>([\s\S]*?)<\/h3>/);
       const hrefMatch = card.match(/href="([^"]+)"/);
       const imgMatch = card.match(/<img[^>]+src="([^"]+)"/);
 
       if (titleMatch && hrefMatch && imgMatch) {
-        const rawTitle = titleMatch[1].trim();
+        const rawTitle = titleMatch[1].replace(/[\n\r\t]+/g, '').trim();
         const title = decodeHTMLEntities(rawTitle);
         const href = hrefMatch[1].startsWith('/') ? `https://animeblkom.com${hrefMatch[1]}` : hrefMatch[1];
-        results.push({
-          title,
-          href,
-          image: imgMatch[1]
-        });
+        results.push({ title, href, image: imgMatch[1] });
       }
     }
 
-    if (results.length === 0) {
-      return JSON.stringify([{
-        title: 'No results found',
-        href: '',
-        image: ''
-      }]);
-    }
-
-    return JSON.stringify(results);
+    return results.length ? JSON.stringify(results) : JSON.stringify([{ title: 'No results found', href: '', image: '' }]);
   } catch (error) {
-    return JSON.stringify([{
-      title: 'Error',
-      href: '',
-      image: '',
-      error: error.message
-    }]);
+    return JSON.stringify([{ title: 'Error', href: '', image: '', error: error.message }]);
   }
 }
 
@@ -76,45 +49,22 @@ async function extractDetails(url) {
     });
 
     if (!res.ok) {
-      return JSON.stringify([{
-        title: 'Error',
-        image: '',
-        description: '',
-        genres: [],
-        error: `HTTP error: ${res.status} - ${res.statusText}`
-      }]);
+      return JSON.stringify([{ title: 'Error', image: '', description: '', genres: [], error: `HTTP error: ${res.status}` }]);
     }
 
     const html = await res.text();
     if (!html || html.trim() === '') {
-      return JSON.stringify([{
-        title: 'No details found',
-        image: '',
-        description: '',
-        genres: [],
-        error: 'Empty response from API'
-      }]);
+      return JSON.stringify([{ title: 'No details found', image: '', description: '', genres: [], error: 'Empty response' }]);
     }
 
-    const title = (html.match(/<h1[^>]*>(.*?)<\/h1>/) || [])[1]?.trim() || 'N/A';
+    const title = (html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/) || [])[1]?.replace(/[\n\r\t]+/g, '').trim() || 'N/A';
     const image = (html.match(/<div[^>]*class="poster"[^>]*>[\s\S]*?<img[^>]+src="([^"]+)"/) || [])[1] || '';
-    const summary = (html.match(/<div[^>]*class="story"[^>]*>\s*<p>(.*?)<\/p>/) || [])[1]?.trim() || 'N/A';
+    const summary = (html.match(/<div[^>]*class="story"[^>]*>\s*<p>([\s\S]*?)<\/p>/) || [])[1]?.replace(/[\n\r\t]+/g, '').trim() || 'N/A';
     const genres = [...html.matchAll(/\/genre\/[^"]+">([^<]+)<\/a>/g)].map(g => decodeHTMLEntities(g[1].trim()));
 
-    return JSON.stringify([{
-      title: decodeHTMLEntities(title),
-      image,
-      description: decodeHTMLEntities(summary),
-      genres: genres.length ? genres.join(', ') : 'N/A'
-    }]);
+    return JSON.stringify([{ title: decodeHTMLEntities(title), image, description: decodeHTMLEntities(summary), genres: genres.length ? genres.join(', ') : 'N/A' }]);
   } catch (error) {
-    return JSON.stringify([{
-      title: 'Error',
-      image: '',
-      description: '',
-      genres: [],
-      error: error.message
-    }]);
+    return JSON.stringify([{ title: 'Error', image: '', description: '', genres: [], error: error.message }]);
   }
 }
 
@@ -128,48 +78,26 @@ async function extractEpisodes(url) {
     });
 
     if (!res.ok) {
-      return JSON.stringify([{
-        title: 'Error',
-        url: '',
-        error: `HTTP error: ${res.status} - ${res.statusText}`
-      }]);
+      return JSON.stringify([{ title: 'Error', url: '', error: `HTTP error: ${res.status}` }]);
     }
 
     const html = await res.text();
     if (!html || html.trim() === '') {
-      return JSON.stringify([{
-        title: 'No episodes found',
-        url: '',
-        error: 'Empty response from API'
-      }]);
+      return JSON.stringify([{ title: 'No episodes found', url: '', error: 'Empty response' }]);
     }
 
     const results = [];
-    const matches = [...html.matchAll(/<li[^>]*>\s*<a[^>]+href="([^"]+)"[^>]*>\s*<span[^>]*>([^<]+)<\/span>/g)];
+    const matches = [...html.matchAll(/<li[^>]*>\s*<a[^>]+href="([^"]+)"[^>]*>\s*<span[^>]*>([\s\S]*?)<\/span>/g)];
 
     for (const match of matches) {
-      const rawTitle = match[2].trim();
+      const rawTitle = match[2].replace(/[\n\r\t]+/g, '').trim();
       const href = match[1].startsWith('/') ? `https://animeblkom.com${match[1]}` : match[1];
-      results.push({
-        title: decodeHTMLEntities(rawTitle),
-        url: href
-      });
+      results.push({ title: decodeHTMLEntities(rawTitle), url: href });
     }
 
-    if (results.length === 0) {
-      return JSON.stringify([{
-        title: 'No episodes found',
-        url: ''
-      }]);
-    }
-
-    return JSON.stringify(results.reverse());
+    return results.length ? JSON.stringify(results.reverse()) : JSON.stringify([{ title: 'No episodes found', url: '' }]);
   } catch (error) {
-    return JSON.stringify([{
-      title: 'Error',
-      url: '',
-      error: error.message
-    }]);
+    return JSON.stringify([{ title: 'Error', url: '', error: error.message }]);
   }
 }
 
@@ -183,33 +111,25 @@ async function extractStreamUrl(url) {
     });
 
     if (!res.ok) {
-      return JSON.stringify({ streams: [], error: `HTTP error: ${res.status} - ${res.statusText}` });
+      return JSON.stringify({ streams: [], error: `HTTP error: ${res.status}` });
     }
 
     const html = await res.text();
     if (!html || html.trim() === '') {
-      return JSON.stringify({ streams: [], error: 'Empty response from API' });
+      return JSON.stringify({ streams: [], error: 'Empty response' });
     }
 
-    const matches = [...html.matchAll(/<option\s+value="([^"]+)"[^>]*>[^<]*<\/option>/g)];
+    const matches = [...html.matchAll(/<option\s+value="([^"]+)"[^>]*>([^<]*)<\/option>/g)];
     const servers = [];
 
     for (const match of matches) {
       const serverUrl = match[1];
       if (serverUrl.includes('uqload') || serverUrl.includes('vidstream') || serverUrl.includes('streamwish')) {
-        servers.push({
-          url: serverUrl,
-          type: 'external',
-          quality: 'auto'
-        });
+        servers.push({ url: serverUrl, type: 'external', quality: match[2].trim() || 'auto' });
       }
     }
 
-    if (servers.length === 0) {
-      return JSON.stringify({ streams: [], error: 'No stream URLs found' });
-    }
-
-    return JSON.stringify({ streams: servers });
+    return servers.length ? JSON.stringify({ streams: servers }) : JSON.stringify({ streams: [], error: 'No stream URLs found' });
   } catch (error) {
     return JSON.stringify({ streams: [], error: error.message });
   }
@@ -217,16 +137,9 @@ async function extractStreamUrl(url) {
 
 function decodeHTMLEntities(text) {
   text = text.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec));
-  const entities = {
-    '"': '"',
-    '&': '&',
-    ''': "'",
-    '<': '<',
-    '>': '>'
-  };
+  const entities = { '"': '"', '&': '&', "'": "'", '<': '<', '>': '>' };
   for (const entity in entities) {
     text = text.replace(new RegExp(entity, 'g'), entities[entity]);
   }
   return text;
 }
-```​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​
