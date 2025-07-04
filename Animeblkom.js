@@ -1,11 +1,10 @@
-async function searchResults(keyword) {
+async function searchResults(query) {
     try {
-        const encodedKeyword = encodeURIComponent(keyword);
-        const response = await fetchv2(`https://animeblkom.com/search?keyword=${encodedKeyword}`, {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
+        const encoded = encodeURIComponent(query);
+        const response = await fetchv2(`https://animeblkom.com/search?keyword=${encoded}`, {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
             'Referer': 'https://animeblkom.com/'
         });
-
         const html = await response.text();
         const results = [];
         const regex = /<div class="anime-card">([\s\S]*?)<\/div>\s*<\/div>/g;
@@ -23,7 +22,21 @@ async function searchResults(keyword) {
                 });
             }
         }
-        return JSON.stringify(results.length ? results : [{
+
+        if (results.length > 0) return JSON.stringify(results);
+
+        const fallback = await fetchv2(`https://api.consumet.org/anime/gogoanime/${encoded}`);
+        const apiData = await fallback.json();
+        if (Array.isArray(apiData) && apiData.length > 0) {
+            const fallbackResults = apiData.map(item => ({
+                title: item.title || 'Unknown',
+                href: item.url || '',
+                image: item.image || ''
+            }));
+            return JSON.stringify(fallbackResults);
+        }
+
+        return JSON.stringify([{
             title: 'No results found',
             href: '',
             image: ''
@@ -60,7 +73,7 @@ async function extractDetails(url) {
 async function extractEpisodes(url) {
     try {
         const html = await (await fetchv2(url)).text();
-        const regex = /<a[^>]*href="([^"]+)"[^>]*>[^<]*Ø§ÙØ­ÙÙØ©[^<]*<\/a>/g;
+        const regex = /<a[^>]*href="([^"]+)"[^>]*>[^<]*الحلقة[^<]*<\/a>/g;
         const episodes = [];
         let match;
         let i = 1;
@@ -97,7 +110,7 @@ async function extractStreamUrl(url) {
 }
 
 function decodeHTMLEntities(text) {
-    text = text.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec));
+    text = text.replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(dec));
     const entities = {
         '&quot;': '"',
         '&amp;': '&',
