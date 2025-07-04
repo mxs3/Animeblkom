@@ -18,15 +18,15 @@ async function searchResults(query) {
     }
 
     const results = [];
-    const cards = html.match(/<a[^>]+class="anime-card[^"]*"[^>]*>[\s\S]*?<img[^>]*>[\s\S]*?</a>/g) || [];
+    const cards = html.match(/<a\s+class="anime-card"[^>]*>[\s\S]*?<img[^>]*>[\s\S]*?<\/a>/g) || [];
 
     for (const card of cards) {
-      const titleMatch = card.match(/<h3[^>]*>([\s\S]*?)<\/h3>/);
+      const titleMatch = card.match(/<h3>([\s\S]*?)<\/h3>/);
       const hrefMatch = card.match(/href="([^"]+)"/);
-      const imgMatch = card.match(/<img[^>]+src="([^"]+)"/);
+      const imgMatch = card.match(/src="([^"]+)"/);
 
       if (titleMatch && hrefMatch && imgMatch) {
-        const rawTitle = titleMatch[1].replace(/[\n\r\t]+/g, '').trim();
+        const rawTitle = titleMatch[1].replace(/\s+/g, ' ').trim();
         const title = decodeHTMLEntities(rawTitle);
         const href = hrefMatch[1].startsWith('/') ? `https://animeblkom.com${hrefMatch[1]}` : hrefMatch[1];
         results.push({ title, href, image: imgMatch[1] });
@@ -57,10 +57,10 @@ async function extractDetails(url) {
       return JSON.stringify([{ title: 'No details found', image: '', description: '', genres: [], error: 'Empty response' }]);
     }
 
-    const title = (html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/) || [])[1]?.replace(/[\n\r\t]+/g, '').trim() || 'N/A';
-    const image = (html.match(/<div[^>]*class="poster"[^>]*>[\s\S]*?<img[^>]+src="([^"]+)"/) || [])[1] || '';
-    const summary = (html.match(/<div[^>]*class="story"[^>]*>\s*<p>([\s\S]*?)<\/p>/) || [])[1]?.replace(/[\n\r\t]+/g, '').trim() || 'N/A';
-    const genres = [...html.matchAll(/\/genre\/[^"]+">([^<]+)<\/a>/g)].map(g => decodeHTMLEntities(g[1].trim()));
+    const title = (html.match(/<h1>([\s\S]*?)<\/h1>/) || [])[1]?.replace(/\s+/g, ' ').trim() || 'N/A';
+    const image = (html.match(/<div\s+class="poster"[^>]*>[\s\S]*?<img[^>]+src="([^"]+)"/) || [])[1] || '';
+    const summary = (html.match(/<div\s+class="story"[^>]*>\s*<p>([\s\S]*?)<\/p>/) || [])[1]?.replace(/\s+/g, ' ').trim() || 'N/A';
+    const genres = [...html.matchAll(/\/genre\/[^"]+">([\s\S]*?)<\/a>/g)].map(g => decodeHTMLEntities(g[1].trim()));
 
     return JSON.stringify([{ title: decodeHTMLEntities(title), image, description: decodeHTMLEntities(summary), genres: genres.length ? genres.join(', ') : 'N/A' }]);
   } catch (error) {
@@ -87,10 +87,10 @@ async function extractEpisodes(url) {
     }
 
     const results = [];
-    const matches = [...html.matchAll(/<li[^>]*>\s*<a[^>]+href="([^"]+)"[^>]*>\s*<span[^>]*>([\s\S]*?)<\/span>/g)];
+    const matches = [...html.matchAll(/<li>\s*<a[^>]+href="([^"]+)"[^>]*>\s*<span>([\s\S]*?)<\/span>/g)];
 
     for (const match of matches) {
-      const rawTitle = match[2].replace(/[\n\r\t]+/g, '').trim();
+      const rawTitle = match[2].replace(/\s+/g, ' ').trim();
       const href = match[1].startsWith('/') ? `https://animeblkom.com${match[1]}` : match[1];
       results.push({ title: decodeHTMLEntities(rawTitle), url: href });
     }
@@ -119,7 +119,7 @@ async function extractStreamUrl(url) {
       return JSON.stringify({ streams: [], error: 'Empty response' });
     }
 
-    const matches = [...html.matchAll(/<option\s+value="([^"]+)"[^>]*>([^<]*)<\/option>/g)];
+    const matches = [...html.matchAll(/<option\s+value="([^"]+)"[^>]*>([\s\S]*?)<\/option>/g)];
     const servers = [];
 
     for (const match of matches) {
