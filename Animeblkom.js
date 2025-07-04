@@ -1,8 +1,7 @@
 async function searchResults(query) {
-  const res = await fetchv2(`https://animeblkom.com/search?keyword=${encodeURIComponent(query)}`, {
+  const res = await fetchv2(`https://bypass.mxapp.dev/animeblkom/search?keyword=${encodeURIComponent(query)}`, {
     headers: {
-      'User-Agent': 'Mozilla/5.0',
-      'Accept': 'text/html'
+      'User-Agent': 'Mozilla/5.0'
     }
   });
 
@@ -18,7 +17,7 @@ async function searchResults(query) {
     if (titleMatch && hrefMatch && imgMatch) {
       results.push({
         title: titleMatch[1].trim(),
-        href: hrefMatch[1].startsWith('http') ? hrefMatch[1] : `https://animeblkom.com${hrefMatch[1]}`,
+        href: `https://animeblkom.com${hrefMatch[1]}`,
         image: imgMatch[1]
       });
     }
@@ -28,10 +27,9 @@ async function searchResults(query) {
 }
 
 async function extractDetails(url) {
-  const res = await fetchv2(url, {
+  const res = await fetchv2(`https://bypass.mxapp.dev/animeblkom/details?url=${encodeURIComponent(url)}`, {
     headers: {
-      'User-Agent': 'Mozilla/5.0',
-      'Accept': 'text/html'
+      'User-Agent': 'Mozilla/5.0'
     }
   });
 
@@ -50,10 +48,9 @@ async function extractDetails(url) {
 }
 
 async function extractEpisodes(url) {
-  const res = await fetchv2(url, {
+  const res = await fetchv2(`https://bypass.mxapp.dev/animeblkom/episodes?url=${encodeURIComponent(url)}`, {
     headers: {
-      'User-Agent': 'Mozilla/5.0',
-      'Accept': 'text/html'
+      'User-Agent': 'Mozilla/5.0'
     }
   });
 
@@ -64,7 +61,7 @@ async function extractEpisodes(url) {
   for (const match of matches) {
     results.push({
       title: match[2].trim(),
-      url: match[1].startsWith('http') ? match[1] : `https://animeblkom.com${match[1]}`
+      url: `https://animeblkom.com${match[1]}`
     });
   }
 
@@ -72,10 +69,9 @@ async function extractEpisodes(url) {
 }
 
 async function extractStreamUrl(url) {
-  const res = await fetchv2(url, {
+  const res = await fetchv2(`https://bypass.mxapp.dev/animeblkom/stream?url=${encodeURIComponent(url)}`, {
     headers: {
-      'User-Agent': 'Mozilla/5.0',
-      'Accept': 'text/html'
+      'User-Agent': 'Mozilla/5.0'
     }
   });
 
