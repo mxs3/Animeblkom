@@ -1,7 +1,9 @@
 {
   "sourceName": "AnimeBlkom",
+  "iconUrl": "https://raw.githubusercontent.com/mxs3/Animeblkom/main/Icon.png",
   "author": {
-    "name": "MxS3"
+    "name": "MxS3",
+    "icon": "https://avatars.githubusercontent.com/u/162128369?v=4"
   },
   "version": "1.05",
   "language": "Arabic (SUB)",
@@ -9,7 +11,7 @@
   "quality": "1080p - 720p - 360p - 480p",
   "baseUrl": "https://animeblkom.com/",
   "searchBaseUrl": "https://animeblkom.com/?s=%s",
-  "scriptUrl": "https://github.com/mxs3/Animeblkom/blob/main/Animeblkom.js",
+  "scriptUrl": "https://raw.githubusercontent.com/mxs3/Animeblkom/main/Animeblkom.js",
   "asyncJS": true,
   "type": "anime"
 }
