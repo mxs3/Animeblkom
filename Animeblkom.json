@@ -1,5 +1,5 @@
 {
-  "sourceName": "Animeiat",
+  "sourceName": "AnimeBlkom",
   "author": {
     "name": "MxS3"
   },
@@ -7,9 +7,9 @@
   "language": "Arabic (SUB)",
   "streamType": "MP4",
   "quality": "1080p - 720p - 360p - 480p",
-  "baseUrl": "https://www.animeiat.xyz/",
-  "searchBaseUrl": "https://www.animeiat.xyz/search?q=%s",
-  "scriptUrl": "https://raw.githubusercontent.com/scigward/scigward-sources/refs/heads/main/animeiat/animeiat.js",
+  "baseUrl": "https://animeblkom.com/",
+  "searchBaseUrl": "https://animeblkom.com/?s=%s",
+  "scriptUrl": "https://github.com/mxs3/Animeblkom/blob/main/Animeblkom.js",
   "asyncJS": true,
   "type": "anime"
 }
