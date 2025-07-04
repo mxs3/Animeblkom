@@ -1,7 +1,7 @@
 async function searchResults(query) {
   try {
     const encodedQuery = encodeURIComponent(query);
-    const res = await fetchv2(`https://bypass.mxapp.dev/animeblkom/search?keyword=${encodedQuery}`, {
+    const res = await fetchv2(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://animeblkom.com/search?keyword=${encodedQuery}`)}`, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
         'Referer': 'https://animeblkom.com/'
@@ -68,7 +68,7 @@ async function searchResults(query) {
 
 async function extractDetails(url) {
   try {
-    const res = await fetchv2(`https://bypass.mxapp.dev/animeblkom/details?url=${encodeURIComponent(url)}`, {
+    const res = await fetchv2(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://animeblkom.com${url}`)}`, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
         'Referer': 'https://animeblkom.com/'
@@ -120,7 +120,7 @@ async function extractDetails(url) {
 
 async function extractEpisodes(url) {
   try {
-    const res = await fetchv2(`https://bypass.mxapp.dev/animeblkom/episodes?url=${encodeURIComponent(url)}`, {
+    const res = await fetchv2(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://animeblkom.com${url}`)}`, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
         'Referer': 'https://animeblkom.com/'
@@ -175,7 +175,7 @@ async function extractEpisodes(url) {
 
 async function extractStreamUrl(url) {
   try {
-    const res = await fetchv2(`https://bypass.mxapp.dev/animeblkom/stream?url=${encodeURIComponent(url)}`, {
+    const res = await fetchv2(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://animeblkom.com${url}`)}`, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
         'Referer': 'https://animeblkom.com/'
@@ -218,14 +218,15 @@ async function extractStreamUrl(url) {
 function decodeHTMLEntities(text) {
   text = text.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec));
   const entities = {
-    '&quot;': '"',
-    '&amp;': '&',
-    '&apos;': "'",
-    '&lt;': '<',
-    '&gt;': '>'
+    '"': '"',
+    '&': '&',
+    ''': "'",
+    '<': '<',
+    '>': '>'
   };
   for (const entity in entities) {
     text = text.replace(new RegExp(entity, 'g'), entities[entity]);
   }
   return text;
 }
+```​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​​
