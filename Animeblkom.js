@@ -18,12 +18,12 @@ async function searchResults(query) {
     }
 
     const results = [];
-    const cards = html.match(/<div class="anime-card"[\s\S]*?</div>/g) || [];
+    const cards = html.match(/<div class="anime-card"[^>]*>[\s\S]*?<\/div>/g) || [];
 
     for (const card of cards) {
-      const titleMatch = card.match(/<h3>(.*?)</h3>/);
-      const hrefMatch = card.match(/href="(.*?)" /);
-      const imgMatch = card.match(/<img src="(.*?)"/);
+      const titleMatch = card.match(/<h3>([^<]+)</h3>/);
+      const hrefMatch = card.match(/href="([^"]+)"/);
+      const imgMatch = card.match(/<img src="([^"]+)"/);
 
       if (titleMatch && hrefMatch && imgMatch) {
         const rawTitle = titleMatch[1].replace(/\s+/g, ' ').trim();
@@ -57,10 +57,10 @@ async function extractDetails(url) {
       return JSON.stringify([{ title: 'No details found', image: '', description: '', genres: [], error: 'Empty response' }]);
     }
 
-    const title = (html.match(/<h1>(.*?)</h1>/) || [])[1]?.replace(/\s+/g, ' ').trim() || 'N/A';
-    const image = (html.match(/<div class="poster"[\s\S]*?<img src="(.*?)" /) || [])[1] || '';
-    const summary = (html.match(/<div class="story">\s*<p>(.*?)</p>/) || [])[1]?.replace(/\s+/g, ' ').trim() || 'N/A';
-    const genres = [...html.matchAll(/<a href="\/genre\/.*?">(.*?)</a>/g)].map(g => decodeHTMLEntities(g[1].trim()));
+    const title = (html.match(/<h1>([^<]+)</h1>/) || [])[1]?.replace(/\s+/g, ' ').trim() || 'N/A';
+    const image = (html.match(/<div class="poster"[^>]*><img src="([^"]+)"/) || [])[1] || '';
+    const summary = (html.match(/<div class="story">\s*<p>([^<]+)</p>/) || [])[1]?.replace(/\s+/g, ' ').trim() || 'N/A';
+    const genres = [...html.matchAll(/<a href="\/genre\/[^"]+">([^<]+)</a>/g)].map(g => decodeHTMLEntities(g[1].trim()));
 
     return JSON.stringify([{ title: decodeHTMLEntities(title), image, description: decodeHTMLEntities(summary), genres: genres.length ? genres.join(', ') : 'N/A' }]);
   } catch (error) {
@@ -87,7 +87,7 @@ async function extractEpisodes(url) {
     }
 
     const results = [];
-    const matches = [...html.matchAll(/<li>\s*<a href="(.*?)"[^>]*>\s*<span>(.*?)</span>/g)];
+    const matches = [...html.matchAll(/<li>\s*<a href="([^"]+)"[^>]*>\s*<span>([^<]+)</span>/g)];
 
     for (const match of matches) {
       const rawTitle = match[2].replace(/\s+/g, ' ').trim();
@@ -119,7 +119,7 @@ async function extractStreamUrl(url) {
       return JSON.stringify({ streams: [], error: 'Empty response' });
     }
 
-    const matches = [...html.matchAll(/<option value="(.*?)"[^>]*>(.*?)</option>/g)];
+    const matches = [...html.matchAll(/<option value="([^"]+)"[^>]*>([^<]+)</option>/g)];
     const servers = [];
 
     for (const match of matches) {
