@@ -1,77 +1,102 @@
 function decodeHTMLEntities(text) {
+    text = text.replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(dec));
     const entities = {
-        '&#(\\d+);': (_, dec) => String.fromCharCode(dec),
         '&quot;': '"',
         '&amp;': '&',
         '&apos;': "'",
         '&lt;': '<',
         '&gt;': '>'
     };
-    for (const key in entities) {
-        const value = entities[key];
-        text = text.replace(new RegExp(key, 'g'), value);
+    for (const entity in entities) {
+        text = text.replace(new RegExp(entity, 'g'), entities[entity]);
     }
     return text;
 }
 
 function searchResults(html) {
-    if (typeof html !== 'string') return [];
+    if (typeof html !== 'string') {
+        console.error('Invalid HTML input: expected a string.');
+        return [];
+    }
 
-    const itemRegex = /<div[^>]*class="[^"]*my-2[^"]*w-64[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<\/div>\s*<\/div>/g;
-    const items = html.match(itemRegex) || [];
     const results = [];
 
-    for (const itemHtml of items) {
-        const title = itemHtml.match(/<h2[^>]*>(.*?)<\/h2>/i)?.[1]?.trim() ?? '';
-        const href = itemHtml.match(/<a[^>]+href="([^"]+)"/i)?.[1]?.trim() ?? '';
-        const image = itemHtml.match(/<img[^>]+src="([^"]+)"/i)?.[1]?.trim() ?? '';
+    const titleRegex = /<h2[^>]*>(.*?)<\/h2>/;
+    const hrefRegex = /<a\s+href="([^"]+)"\s*[^>]*>/;
+    const imgRegex = /<img[^>]*src="([^"]+)"[^>]*>/;
 
-        if (title && href) {
-            results.push({
-                title: decodeHTMLEntities(title),
-                href,
-                image
-            });
+    const itemRegex = /<div class="my-2 w-64[^"]*"[^>]*>[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/g;
+    const items = html.match(itemRegex) || [];
+
+    items.forEach((itemHtml, index) => {
+        try {
+            if (typeof itemHtml !== 'string') {
+                console.error(`Item ${index} is not a string.`);
+                return;
+            }
+
+            const titleMatch = itemHtml.match(titleRegex);
+            const title = titleMatch?.[1]?.trim() ?? '';
+
+            const hrefMatch = itemHtml.match(hrefRegex);
+            const href = hrefMatch?.[1]?.trim() ?? '';
+
+            const imgMatch = itemHtml.match(imgRegex);
+            const imageUrl = imgMatch?.[1]?.trim() ?? '';
+
+            if (title && href) {
+                results.push({
+                    title: decodeHTMLEntities(title),
+                    image: imageUrl,
+                    href: href
+                });
+            } else {
+                console.error(`Missing title or href in item ${index}`);
+            }
+        } catch (err) {
+            console.error(`Error processing item ${index}:`, err);
         }
-    }
+    });
 
     return results;
 }
 
 function extractDetails(html) {
-    const details = {
-        description: '',
-        aliases: '',
-        airdate: ''
-    };
+    const details = [];
 
     const containerMatch = html.match(/<div class="py-4 flex flex-col gap-2">\s*((?:<p[^>]*>[\s\S]*?<\/p>\s*)+)<\/div>/);
+    let description = "";
     if (containerMatch) {
         const pBlock = containerMatch[1];
         const pRegex = /<p[^>]*>([\s\S]*?)<\/p>/g;
-        const matches = [...pBlock.matchAll(pRegex)].map(m => m[1].trim()).filter(t => t.length > 0);
-        details.description = decodeHTMLEntities(matches.join("\n\n"));
+        const matches = [...pBlock.matchAll(pRegex)]
+            .map(m => m[1].trim())
+            .filter(text => text.length > 0);
+        description = decodeHTMLEntities(matches.join("\n\n"));
     }
 
     const airdateMatch = html.match(/<td[^>]*title="([^"]+)">[^<]+<\/td>/);
-    if (airdateMatch) {
-        details.airdate = airdateMatch[1].trim();
-    }
+    let airdate = airdateMatch ? airdateMatch[1].trim() : "";
 
-    const aliasesMatch = html.match(/<div\s+class="flex flex-wrap[^"]*">([\s\S]*?)<\/div>/);
-    const inner = aliasesMatch ? aliasesMatch[1] : '';
-    const anchorRe = /<a[^>]*class="btn btn-md btn-plain !p-0"[^>]*>([^<]+)<\/a>/g;
     const genres = [];
+    const aliasesMatch = html.match(/<div\s+class="flex flex-wrap[^"]*">([\s\S]*?)<\/div>/);
+    const inner = aliasesMatch ? aliasesMatch[1] : "";
+
+    const anchorRe = /<a[^>]*class="btn btn-md btn-plain !p-0"[^>]*>([^<]+)<\/a>/g;
     let m;
     while ((m = anchorRe.exec(inner)) !== null) {
         genres.push(m[1].trim());
     }
 
-    if (genres.length > 0) {
-        details.aliases = genres.join(", ");
+    if (description && airdate) {
+        details.push({
+            description: description,
+            aliases: genres.join(", "),
+            airdate: airdate
+        });
     }
 
-    return [details];
+    return details;
 }
 
 function extractEpisodes(html) {
