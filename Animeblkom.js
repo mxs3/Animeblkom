@@ -1,145 +1,182 @@
-async function searchResults(query) {
-  try {
-    const encodedQuery = encodeURIComponent(query);
-    const res = await fetchv2(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://animeblkom.com/search?keyword=${encodedQuery}`)}`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
-        'Referer': 'https://animeblkom.com/'
-      }
-    });
-
-    if (!res.ok) {
-      return JSON.stringify([{ title: 'Error', href: '', image: '', error: `HTTP error: ${res.status}` }]);
-    }
-
-    const html = await res.text();
-    if (!html || html.trim() === '') {
-      return JSON.stringify([{ title: 'No results found', href: '', image: '', error: 'Empty response' }]);
-    }
-
-    const results = [];
-    const cards = html.match(/<div class="anime-card"[^>]*>[\s\S]*?<\/div>/g) || [];
-
-    for (const card of cards) {
-      const titleMatch = card.match(/<h3>([^<]+)</h3>/);
-      const hrefMatch = card.match(/href="([^"]+)"/);
-      const imgMatch = card.match(/<img src="([^"]+)"/);
-
-      if (titleMatch && hrefMatch && imgMatch) {
-        const rawTitle = titleMatch[1].replace(/\s+/g, ' ').trim();
-        const title = decodeHTMLEntities(rawTitle);
-        const href = hrefMatch[1].startsWith('/') ? `https://animeblkom.com${hrefMatch[1]}` : hrefMatch[1];
-        results.push({ title, href, image: imgMatch[1] });
-      }
-    }
-
-    return results.length ? JSON.stringify(results) : JSON.stringify([{ title: 'No results found', href: '', image: '' }]);
-  } catch (error) {
-    return JSON.stringify([{ title: 'Error', href: '', image: '', error: error.message }]);
-  }
-}
-
-async function extractDetails(url) {
-  try {
-    const res = await fetchv2(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://animeblkom.com${url}`)}`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
-        'Referer': 'https://animeblkom.com/'
-      }
-    });
-
-    if (!res.ok) {
-      return JSON.stringify([{ title: 'Error', image: '', description: '', genres: [], error: `HTTP error: ${res.status}` }]);
-    }
-
-    const html = await res.text();
-    if (!html || html.trim() === '') {
-      return JSON.stringify([{ title: 'No details found', image: '', description: '', genres: [], error: 'Empty response' }]);
-    }
-
-    const title = (html.match(/<h1>([^<]+)</h1>/) || [])[1]?.replace(/\s+/g, ' ').trim() || 'N/A';
-    const image = (html.match(/<div class="poster"[^>]*><img src="([^"]+)"/) || [])[1] || '';
-    const summary = (html.match(/<div class="story">\s*<p>([^<]+)</p>/) || [])[1]?.replace(/\s+/g, ' ').trim() || 'N/A';
-    const genres = [...html.matchAll(/<a href="\/genre\/[^"]+">([^<]+)</a>/g)].map(g => decodeHTMLEntities(g[1].trim()));
-
-    return JSON.stringify([{ title: decodeHTMLEntities(title), image, description: decodeHTMLEntities(summary), genres: genres.length ? genres.join(', ') : 'N/A' }]);
-  } catch (error) {
-    return JSON.stringify([{ title: 'Error', image: '', description: '', genres: [], error: error.message }]);
-  }
-}
-
-async function extractEpisodes(url) {
-  try {
-    const res = await fetchv2(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://animeblkom.com${url}`)}`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
-        'Referer': 'https://animeblkom.com/'
-      }
-    });
-
-    if (!res.ok) {
-      return JSON.stringify([{ title: 'Error', url: '', error: `HTTP error: ${res.status}` }]);
-    }
-
-    const html = await res.text();
-    if (!html || html.trim() === '') {
-      return JSON.stringify([{ title: 'No episodes found', url: '', error: 'Empty response' }]);
-    }
-
-    const results = [];
-    const matches = [...html.matchAll(/<li>\s*<a href="([^"]+)"[^>]*>\s*<span>([^<]+)</span>/g)];
-
-    for (const match of matches) {
-      const rawTitle = match[2].replace(/\s+/g, ' ').trim();
-      const href = match[1].startsWith('/') ? `https://animeblkom.com${match[1]}` : match[1];
-      results.push({ title: decodeHTMLEntities(rawTitle), url: href });
-    }
-
-    return results.length ? JSON.stringify(results.reverse()) : JSON.stringify([{ title: 'No episodes found', url: '' }]);
-  } catch (error) {
-    return JSON.stringify([{ title: 'Error', url: '', error: error.message }]);
-  }
-}
-
-async function extractStreamUrl(url) {
-  try {
-    const res = await fetchv2(`https://api.allorigins.win/raw?url=${encodeURIComponent(`https://animeblkom.com${url}`)}`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
-        'Referer': 'https://animeblkom.com/'
-      }
-    });
-
-    if (!res.ok) {
-      return JSON.stringify({ streams: [], error: `HTTP error: ${res.status}` });
-    }
-
-    const html = await res.text();
-    if (!html || html.trim() === '') {
-      return JSON.stringify({ streams: [], error: 'Empty response' });
-    }
-
-    const matches = [...html.matchAll(/<option value="([^"]+)"[^>]*>([^<]+)</option>/g)];
-    const servers = [];
-
-    for (const match of matches) {
-      const serverUrl = match[1];
-      if (serverUrl.includes('uqload') || serverUrl.includes('vidstream') || serverUrl.includes('streamwish')) {
-        servers.push({ url: serverUrl, type: 'external', quality: match[2].trim() || 'auto' });
-      }
-    }
-
-    return servers.length ? JSON.stringify({ streams: servers }) : JSON.stringify({ streams: [], error: 'No stream URLs found' });
-  } catch (error) {
-    return JSON.stringify({ streams: [], error: error.message });
-  }
-}
-
 function decodeHTMLEntities(text) {
-  text = text.replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec));
-  const entities = { '"': '"', '&': '&', "'": "'", '<': '<', '>': '>' };
-  for (const entity in entities) {
-    text = text.replace(new RegExp(entity, 'g'), entities[entity]);
-  }
-  return text;
+    const entities = {
+        '&#(\\d+);': (_, dec) => String.fromCharCode(dec),
+        '&quot;': '"',
+        '&amp;': '&',
+        '&apos;': "'",
+        '&lt;': '<',
+        '&gt;': '>'
+    };
+    for (const key in entities) {
+        const value = entities[key];
+        text = text.replace(new RegExp(key, 'g'), value);
+    }
+    return text;
+}
+
+function searchResults(html) {
+    if (typeof html !== 'string') return [];
+
+    const itemRegex = /<div[^>]*class="[^"]*my-2[^"]*w-64[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<\/div>\s*<\/div>/g;
+    const items = html.match(itemRegex) || [];
+    const results = [];
+
+    for (const itemHtml of items) {
+        const title = itemHtml.match(/<h2[^>]*>(.*?)<\/h2>/i)?.[1]?.trim() ?? '';
+        const href = itemHtml.match(/<a[^>]+href="([^"]+)"/i)?.[1]?.trim() ?? '';
+        const image = itemHtml.match(/<img[^>]+src="([^"]+)"/i)?.[1]?.trim() ?? '';
+
+        if (title && href) {
+            results.push({
+                title: decodeHTMLEntities(title),
+                href,
+                image
+            });
+        }
+    }
+
+    return results;
+}
+
+function extractDetails(html) {
+    const details = {
+        description: '',
+        aliases: '',
+        airdate: ''
+    };
+
+    const containerMatch = html.match(/<div class="py-4 flex flex-col gap-2">\s*((?:<p[^>]*>[\s\S]*?<\/p>\s*)+)<\/div>/);
+    if (containerMatch) {
+        const pBlock = containerMatch[1];
+        const pRegex = /<p[^>]*>([\s\S]*?)<\/p>/g;
+        const matches = [...pBlock.matchAll(pRegex)].map(m => m[1].trim()).filter(t => t.length > 0);
+        details.description = decodeHTMLEntities(matches.join("\n\n"));
+    }
+
+    const airdateMatch = html.match(/<td[^>]*title="([^"]+)">[^<]+<\/td>/);
+    if (airdateMatch) {
+        details.airdate = airdateMatch[1].trim();
+    }
+
+    const aliasesMatch = html.match(/<div\s+class="flex flex-wrap[^"]*">([\s\S]*?)<\/div>/);
+    const inner = aliasesMatch ? aliasesMatch[1] : '';
+    const anchorRe = /<a[^>]*class="btn btn-md btn-plain !p-0"[^>]*>([^<]+)<\/a>/g;
+    const genres = [];
+    let m;
+    while ((m = anchorRe.exec(inner)) !== null) {
+        genres.push(m[1].trim());
+    }
+
+    if (genres.length > 0) {
+        details.aliases = genres.join(", ");
+    }
+
+    return [details];
+}
+
+function extractEpisodes(html) {
+    const episodes = [];
+    const htmlRegex = /<a\s+[^>]*href="([^"]*?\/episode\/[^"]*?)"[^>]*>[\s\S]*?الحلقة\s+(\d+)[\s\S]*?<\/a>/gi;
+    const plainTextRegex = /الحلقة\s+(\d+)/g;
+
+    let matches;
+
+    if ((matches = html.match(htmlRegex))) {
+        matches.forEach(link => {
+            const hrefMatch = link.match(/href="([^"]+)"/);
+            const numberMatch = link.match(/الحلقة\s+(\d+)/);
+            if (hrefMatch && numberMatch) {
+                episodes.push({
+                    href: hrefMatch[1],
+                    number: numberMatch[1]
+                });
+            }
+        });
+    } else if ((matches = html.match(plainTextRegex))) {
+        matches.forEach(match => {
+            const numberMatch = match.match(/\d+/);
+            if (numberMatch) {
+                episodes.push({
+                    href: null,
+                    number: numberMatch[0]
+                });
+            }
+        });
+    }
+
+    return episodes;
+}
+
+async function extractStreamUrl(html) {
+    try {
+        const sourceMatch = html.match(/data-video-source="([^"]+)"/);
+        let embedUrl = sourceMatch?.[1]?.replace(/&amp;/g, '&');
+        if (!embedUrl) return null;
+
+        const cinemaMatch = html.match(/url\.searchParams\.append\(\s*['"]cinema['"]\s*,\s*(\d+)\s*\)/);
+        const lastMatch = html.match(/url\.searchParams\.append\(\s*['"]last['"]\s*,\s*(\d+)\s*\)/);
+        const cinemaNum = cinemaMatch ? cinemaMatch[1] : undefined;
+        const lastNum = lastMatch ? lastMatch[1] : undefined;
+
+        if (cinemaNum) embedUrl += `&cinema=${cinemaNum}`;
+        if (lastNum) embedUrl += `&last=${lastNum}`;
+        embedUrl += `&next-image=undefined`;
+
+        const response = await fetchv2(embedUrl);
+        if (!response.ok) return null;
+
+        const data = await response.text();
+        const qualities = extractQualities(data);
+
+        const epMatch = html.match(/<title>[^<]*الحلقة\s*(\d+)[^<]*<\/title>/);
+        const currentEp = epMatch ? Number(epMatch[1]) : null;
+
+        let nextEpNum, nextDuration, nextSubtitle;
+        if (currentEp !== null) {
+            const episodeRegex = new RegExp(
+                `<a[^>]+href="[^"]+/episode/[^/]+/(\\d+)"[\\s\\S]*?<span[^>]*>([^<]+)<\\/span>[\\s\\S]*?<p[^>]*>([^<]+)<\\/p>`,
+                'g'
+            );
+            let m;
+            while ((m = episodeRegex.exec(html)) !== null) {
+                const num = Number(m[1]);
+                if (num > currentEp) {
+                    nextEpNum = num;
+                    nextDuration = m[2].trim();
+                    nextSubtitle = m[3].trim();
+                    break;
+                }
+            }
+        }
+
+        if (nextEpNum != null) {
+            embedUrl += `&next-title=${encodeURIComponent(nextDuration)}`;
+            embedUrl += `&next-sub-title=${encodeURIComponent(nextSubtitle)}`;
+        }
+
+        return JSON.stringify({
+            streams: qualities
+        });
+    } catch {
+        return null;
+    }
+}
+
+function extractQualities(html) {
+    const match = html.match(/var\s+videos\s*=\s*(\[[\s\S]*?\]);/);
+    if (!match) return [];
+
+    const raw = match[1];
+    const regex = /\{\s*src:\s*'([^']+)'\s*[^}]*label:\s*'([^']*)'/g;
+    const list = [];
+    let m;
+
+    while ((m = regex.exec(raw)) !== null) {
+        list.push({
+            label: m[2],
+            url: m[1]
+        });
+    }
+
+    return list;
 }
